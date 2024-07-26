@@ -104,7 +104,11 @@ def get_stock_data(stock):
 # Background thread that polls the Echios API (based on the POLLING_INTERVAL) for the selected stock.
 def background_thread():
     while True:
-        socketio.emit('stock_update', get_stock_data(current_stock))
+        current_stock_data = get_stock_data(current_stock)
+
+        if 'error' in current_stock_data or current_stock_data.get('symbol').lower() == current_stock:
+            socketio.emit('stock_update', current_stock_data)
+
         time.sleep(POLLING_INTERVAL)
 
 
@@ -113,4 +117,4 @@ if __name__ == '__main__':
     thread.daemon = True
     thread.start()
 
-    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(app, allow_unsafe_werkzeug=True)
