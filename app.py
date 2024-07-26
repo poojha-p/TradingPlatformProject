@@ -44,12 +44,7 @@ class Trades(db.Model):
     def __repr__(self):
         return f"<Trade {self.stock_name} {self.buy_sell} {self.price} {self.timestamp} >"
 
-    
 @app.route("/")
 def hello_world():
     # Pass dynamic data for HTML templating as named parameters.
     return render_template("index.html", name="Tyler")
-
-@app.route("/temp")
-def experiment():
-    return "This is an experiment page"
