@@ -24,13 +24,14 @@ with open('app-config.properties', 'rb') as config_file:
 
 API_KEY = configs.get("API_KEY").data
 
+# Homepage
 @app.route("/")
 def hello_world():
     # Pass dynamic data for HTML templating as named parameters.
     return render_template("index.html")
 
 
-# Returns a dictionary of stock prices from the API.
+# API endpoints
 @app.route("/all-stocks", methods=['GET'])
 def get_all_stock_prices_endpoint():
     return Response(response=get_all_stock_data_as_json(), status=200, mimetype='application/json')
@@ -42,6 +43,7 @@ def get_stock_data_endpoint():
     return Response(response=get_stock_data_as_json(stock), status=200, mimetype='application/json')
 
 
+# socket IO
 @socketio.on('connect')
 def handle_connect():
     send('A new user has connected.', broadcast=True)
@@ -55,6 +57,7 @@ def handle_select_stock(data):
     socketio.emit('selected-stock-update', current_stock)
 
 
+# Logic
 def get_all_stock_data_as_json():
     return json.dumps({"stocks": get_all_stock_data()})
 
@@ -72,6 +75,7 @@ def get_all_stock_data():
     return list(stocks_list)
 
 
+# Call to Echios API made here.
 def get_stock_data(stock):
     try:
         print("pinging API")
@@ -97,6 +101,7 @@ def get_stock_data(stock):
         }
 
 
+# Background thread that polls the Echios API (based on the POLLING_INTERVAL) for the selected stock.
 def background_thread():
     while True:
         socketio.emit('stock_update', get_stock_data(current_stock))
