@@ -8,7 +8,7 @@ app = Flask(__name__)
 app.debug = True
 
 # adding configuration for using a sqlite database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 # Creating an SQLAlchemy instance
 db = SQLAlchemy(app)
 # Settings for migrations
