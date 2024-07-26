@@ -1,22 +1,47 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <title>Trading Project</title>
+    <link rel="stylesheet" href="static\css\styles.css" />
+  </head>
 
-<head>
-    <title>TradingProject</title>
-</head>
+  <body>
+    <!-- this section can be replaced by a child document -->
+    <div class="login_div">
+      <button id="login_b" class="login_buttons">Login</button>
+      <button id="signup_b" class="login_buttons">Sign up</button>
+    </div>
 
-<body>
- <!-- this section can be replaced by a child document -->
-{% block body %}
+    <div class="market_data_div">
+      <button onclick="drop_down()" class="dropdown">Choose Stock</button>
+      <div id="stock_dropdown" class="dropdown_stuff">
+        <div onclick="update_graph('msft')">MSFT</div>
+        <div onclick="update_graph('ibm')">IBM</div>
+        <div onclick="update_graph('race')">RACE</div>
+        <div onclick="update_graph('tsla')">TSLA</div>
+      </div>
+      <script>
+        function drop_down() {
+          document.getElementById("stock_dropdown").classList.toggle("show");
+        }
 
+        window.onclick = function (event) {
+          if (!event.target.matches(".dropdown")) {
+            var dropdowns = document.getElementsByClassName("dropdown_stuff");
+            var i;
+            for (i = 0; i < dropdowns.length; i++) {
+              var openDropdown = dropdowns[i];
+              if (openDropdown.classList.contains("show")) {
+                openDropdown.classList.remove("show");
+              }
+            }
+          }
+        };
 
-<p>This is a Flask application.</p>
- <p>Hello {{ name }}</p>
-
-
-{% endblock %}
-
-
-</body>
-
+        function update_graph(stock) {
+            
+        }
+      </script>
+    </div>
+  </body>
 </html>
