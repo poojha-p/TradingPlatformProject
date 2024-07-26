@@ -7,7 +7,11 @@
 - Create an `app-config.properties` file with key-value pair API_KEY=[INSERT API KEY HERE].
 
 # Additional Notes
-- HTML files must be placed in the /templates directory to be picked up by the templating engine.
+
+**IMPORTANT**
+- There seems to be a problem with the Echios API which happens occasionally, but it seems to fix itself, you just have to wait for a valid response to come through. 
+- I believe that the API is sometimes returning an invalid JSON response due to throttling (even though we are requesting every 3 seconds which is within the limit). 
+- However, there may be another reason this is happening that I am unaware of.
 
 ## Resources on HTML templating 
 - https://www.geeksforgeeks.org/flask-rendering-templates/
