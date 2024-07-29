@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html>
   <head>
     <title>Trading Project</title>
@@ -6,13 +6,14 @@
   </head>
 
   <body>
-    <!-- this section can be replaced by a child document -->
-    <div class="login_div">
-      <button id="login_b" class="login_buttons">Login</button>
-      <button id="signup_b" class="login_buttons">Sign up</button>
+    <div class="box">
+      <div id="login_div">
+        <button id="login_b" class="login_buttons">Login</button>
+        <button id="signup_b" class="login_buttons">Sign up</button>  
+      </div>
     </div>
 
-    <div class="market_data_div">
+    <div class="box">
       <button onclick="drop_down()" class="dropdown">Choose Stock</button>
       <div id="stock_dropdown" class="dropdown_stuff">
         <div onclick="update_graph('msft')">MSFT</div>
@@ -43,5 +44,52 @@
         }
       </script>
     </div>
+
+    <div class="box">
+      <p>Filler</p>
+    </div>
+
+    <div class="box">
+      <p>Filler</p>
+    </div>
+
+    <div>
+    </div>
   </body>
+</html>
+ -->
+
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Platform</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/scripts.js') }}" defer></script>
+</head>
+<body>
+    <header>
+        <div class="nav">
+            <a href="/">Home</a>
+            <a href="/login">Login</a>
+        </div>
+        <h1>Trading Platform</h1>
+    </header>
+    <main>
+        <section id="market-data">
+            <h2>Market Data</h2>
+            <div id="data">
+                <p>Loading data...</p>
+            </div>
+        </section>
+        <section id="actions">
+            <button onclick="buyStock()">Buy</button>
+            <button onclick="sellStock()">Sell</button>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2024 Trading Platform</p>
+    </footer>
+</body>
 </html>
