@@ -1,96 +1,70 @@
-<!-- <!DOCTYPE html>
-<html>
-  <head>
-    <title>Trading Project</title>
-    <link rel="stylesheet" href="static\css\styles.css" />
-  </head>
-
-  <body>
-    <div class="box">
-      <div id="login_div">
-        <button id="login_b" class="login_buttons">Login</button>
-        <button id="signup_b" class="login_buttons">Sign up</button>  
-      </div>
-    </div>
-
-    <div class="box">
-      <button onclick="drop_down()" class="dropdown">Choose Stock</button>
-      <div id="stock_dropdown" class="dropdown_stuff">
-        <div onclick="update_graph('msft')">MSFT</div>
-        <div onclick="update_graph('ibm')">IBM</div>
-        <div onclick="update_graph('race')">RACE</div>
-        <div onclick="update_graph('tsla')">TSLA</div>
-      </div>
-      <script>
-        function drop_down() {
-          document.getElementById("stock_dropdown").classList.toggle("show");
-        }
-
-        window.onclick = function (event) {
-          if (!event.target.matches(".dropdown")) {
-            var dropdowns = document.getElementsByClassName("dropdown_stuff");
-            var i;
-            for (i = 0; i < dropdowns.length; i++) {
-              var openDropdown = dropdowns[i];
-              if (openDropdown.classList.contains("show")) {
-                openDropdown.classList.remove("show");
-              }
-            }
-          }
-        };
-
-        function update_graph(stock) {
-            
-        }
-      </script>
-    </div>
-
-    <div class="box">
-      <p>Filler</p>
-    </div>
-
-    <div class="box">
-      <p>Filler</p>
-    </div>
-
-    <div>
-    </div>
-  </body>
-</html>
- -->
-
-<!--  <!DOCTYPE html>
+<!-- templates/index.html -->
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trading Platform</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="{{ url_for('static', filename='js/scripts.js') }}" defer></script>
+    <title>Flask WebSocket Background Task Example</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.0/socket.io.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        document.addEventListener('DOMContentLoaded', function() {
+            var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+            socket.on('connect', function() {
+                console.log('Connected to server');
+            });
+
+            socket.on('stock_update', function(data) {
+                var messageContainer = document.getElementById('messages');
+                var messageElement = document.createElement('p');
+
+                if ('error' in data) {
+                    console.log("YOU RECEIVED AN ERROR");
+                } else {
+                    const { symbol, price, time } = data;
+                    console.log('Received stock update. \nSymbol: ' + symbol +  ' \nPrice: ' + price + ' \nTime: ' + time);
+                    messageElement.textContent = 'Symbol: ' + symbol +  ' Price: ' + price + ' Time: ' + time;
+                    messageContainer.appendChild(messageElement);
+                }
+            });
+
+            socket.on('selected-stock-update', function(data) {
+                console.log('Recieved select-stock event');
+                var selectedStock = document.getElementById('current-stock');
+                selectedStock.innerText = data.toUpperCase()
+            });
+
+            document.getElementById('ibm-button').onclick = function() {
+                socket.emit('select-stock', 'ibm');
+            };
+
+            document.getElementById('msft-button').onclick = function() {
+                socket.emit('select-stock', 'msft');
+            };
+
+            document.getElementById('tsla-button').onclick = function() {
+                socket.emit('select-stock', 'tsla');
+            };
+
+            document.getElementById('race-button').onclick = function() {
+                socket.emit('select-stock', 'race');
+            };
+        });
+    </script>
 </head>
 <body>
-    <header>
-        <div class="nav">
-            <a href="/">Home</a>
-            <a href="/login">Login</a>
-        </div>
-        <h1>Trading Platform</h1>
-    </header>
-    <main>
-        <section id="market-data">
-            <h2>Market Data</h2>
-            <div id="data">
-                <p>Loading data...</p>
-            </div>
-        </section>
-        <section id="actions">
-            <button onclick="buyStock()">Buy</button>
-            <button onclick="sellStock()">Sell</button>
-        </section>
-    </main>
-    <footer>
-        <p>&copy; 2024 Trading Platform</p>
-    </footer>
+    <h1>Flask WebSocket Background Task Example</h1>
+
+    <button id="ibm-button">IBM</button>
+    <button id="msft-button">MSFT</button>
+    <button id="tsla-button">TSLA</button>
+    <button id="race-button">RACE</button>
+    <div id="selected-stock">
+        <p>Current stock selected:</p>
+        <p id="current-stock"></p>
+    </div>
+
+
+    <div id="messages"></div>
+    <div id="background"></div>
 </body>
 </html>
- -->
