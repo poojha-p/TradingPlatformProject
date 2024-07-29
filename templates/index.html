@@ -1,22 +1,70 @@
+<!-- templates/index.html -->
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <title>TradingProject</title>
+    <meta charset="UTF-8">
+    <title>Flask WebSocket Background Task Example</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.0/socket.io.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        document.addEventListener('DOMContentLoaded', function() {
+            var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+            socket.on('connect', function() {
+                console.log('Connected to server');
+            });
+
+            socket.on('stock_update', function(data) {
+                var messageContainer = document.getElementById('messages');
+                var messageElement = document.createElement('p');
+
+                if ('error' in data) {
+                    console.log("YOU RECEIVED AN ERROR");
+                } else {
+                    const { symbol, price, time } = data;
+                    console.log('Received stock update. \nSymbol: ' + symbol +  ' \nPrice: ' + price + ' \nTime: ' + time);
+                    messageElement.textContent = 'Symbol: ' + symbol +  ' Price: ' + price + ' Time: ' + time;
+                    messageContainer.appendChild(messageElement);
+                }
+            });
+
+            socket.on('selected-stock-update', function(data) {
+                console.log('Recieved select-stock event');
+                var selectedStock = document.getElementById('current-stock');
+                selectedStock.innerText = data.toUpperCase()
+            });
+
+            document.getElementById('ibm-button').onclick = function() {
+                socket.emit('select-stock', 'ibm');
+            };
+
+            document.getElementById('msft-button').onclick = function() {
+                socket.emit('select-stock', 'msft');
+            };
+
+            document.getElementById('tsla-button').onclick = function() {
+                socket.emit('select-stock', 'tsla');
+            };
+
+            document.getElementById('race-button').onclick = function() {
+                socket.emit('select-stock', 'race');
+            };
+        });
+    </script>
 </head>
-
 <body>
- <!-- this section can be replaced by a child document -->
-{% block body %}
+    <h1>Flask WebSocket Background Task Example</h1>
+
+    <button id="ibm-button">IBM</button>
+    <button id="msft-button">MSFT</button>
+    <button id="tsla-button">TSLA</button>
+    <button id="race-button">RACE</button>
+    <div id="selected-stock">
+        <p>Current stock selected:</p>
+        <p id="current-stock"></p>
+    </div>
 
 
-<p>This is a Flask application.</p>
- <p>Hello {{ name }}</p>
-
-
-{% endblock %}
-
-
+    <div id="messages"></div>
+    <div id="background"></div>
 </body>
-
 </html>

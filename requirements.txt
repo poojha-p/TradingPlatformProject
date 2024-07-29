@@ -1,3 +1,6 @@
 Flask 
 Flask-sqlalchemy 
 Flask-migrate
+requests
+jproperties
+flask-socketio
