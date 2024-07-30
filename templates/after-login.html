@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Market Dashboard</title>
+    <link rel="stylesheet" href="../static/css/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.0/socket.io.js"></script>
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+            socket.on('connect', function() {
+                console.log('Connected to server');
+            });
+
+            socket.on('stock_update', function(data) {
+                var stockDataContainer = document.getElementById('stock-data');
+                stockDataContainer.innerHTML = '';
+
+                if ('error' in data) {
+                    stockDataContainer.textContent = 'Error: ' + data.error;
+                } else {
+                    const { symbol, price, time } = data;
+                    stockDataContainer.innerHTML = `
+                        <p><strong>Symbol:</strong> ${symbol}</p>
+                        <p><strong>Price:</strong> ${price}</p>
+                        <p><strong>Time:</strong> ${time}</p>
+                    `;
+                }
+            });
+
+            socket.on('selected-stock-update', function(data) {
+                console.log('Received selected-stock update');
+                var selectedStock = document.getElementById('current-stock');
+                selectedStock.innerText = data.toUpperCase();
+            });
+
+            document.getElementById('ibm-button').onclick = function() {
+                socket.emit('select-stock', 'ibm');
+            };
+            document.getElementById('msft-button').onclick = function() {
+                socket.emit('select-stock', 'msft');
+            };
+            document.getElementById('tsla-button').onclick = function() {
+                socket.emit('select-stock', 'tsla');
+            };
+            document.getElementById('race-button').onclick = function() {
+                socket.emit('select-stock', 'race');
+            };
+        });
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Stock Market Dashboard</h1>
+        <nav>
+            <a href="/login" class="auth-link">Login</a>
+            <a href="/signup" class="auth-link">Sign Up</a>
+        </nav>
+    </header>
+
+    <section id="profile">
+        <div id="profile-info">
+            <div id="profile-picture">
+                <img src="{{ url_for('static', filename='profile.jpg') }}" alt="Profile Picture">
+            </div>
+            <div id="profile-details">
+                <p>Hello, [User]</p>
+                <div id="profile-metrics">
+                    <div class="metric"><strong>Metric 1</strong></div>
+                    <div class="metric"><strong>Metric 2</strong></div>
+                    <div class="metric"><strong>Metric 3</strong></div>
+                    <div class="metric"><strong>Metric 4</strong></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <main>
+        <section id="controls">
+            <button id="ibm-button" class="stock-button">IBM</button>
+            <button id="msft-button" class="stock-button">MSFT</button>
+            <button id="tsla-button" class="stock-button">TSLA</button>
+            <button id="race-button" class="stock-button">RACE</button>
+        </section>
+
+        <section id="display">
+            <div id="stock-data" class="info-box">
+                <h2>Market Data:</h2>
+                <p>Select a stock to view its current price and details.</p>
+            </div>
+            <div id="transaction-history" class="info-box">
+                <h2>Transaction History</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Stock</th>
+                            <th>Type</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transaction-table-body">
+                        <!-- Transactions will be populated here from the database -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="trade">
+            <div>
+                <label for="order-type">Order Type:</label>
+                <select id="order-type">
+                    <option value="market">Market</option>
+                    <option value="limit">Limit</option>
+                    <option value="stop">Stop</option>
+                </select>
+            </div>
+            <div>
+                <label for="trade-type">Trade Type:</label>
+                <select id="trade-type">
+                    <option value="equity">Equity</option>
+                    <option value="derivative">Derivative</option>
+                    <option value="bond">Bond</option>
+                </select>
+            </div>
+            <button id="buy-button" class="trade-button">BUY</button>
+            <button id="sell-button" class="trade-button">SELL</button>
+        </section>
+    </main>
+</body>
+</html>
