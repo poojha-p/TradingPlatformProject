@@ -3,4 +3,4 @@
 other.txt
 .venv
 /migrations
-/__pycache__
+*.pyc

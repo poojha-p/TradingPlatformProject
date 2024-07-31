@@ -97,16 +97,20 @@ def signup():
 @socketio.on('connect')
 def handle_connect():
     send('A new user has connected.', broadcast=True)
-    socketio.emit('selected-stock-update', current_stock)
+    socketio.emit('stock-info-update', current_stock)
 
 
 @socketio.on('select-stock')
 def handle_select_stock(data):
     global current_stock
     current_stock = data
-    socketio.emit('selected-stock-update', current_stock)
+    socketio.emit('stock-info-update', current_stock)
 
-
+""" @socketio.on('select-stock')
+def handle_select_stock(data):
+    current_stock_data = get_stock_data(data)
+    socketio.emit('stock-info-update', current_stock_data)
+ """
 # Logic
 def get_all_stock_data_as_json():
     return json.dumps({"stocks": get_all_stock_data()})

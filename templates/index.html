@@ -30,9 +30,9 @@
                 }
             });
 
-            socket.on('selected-stock-update', function(data) {
-                console.log(data)
-                console.log('Received selected-stock update');
+            socket.on('stock-info-update', function(data) {
+                console.log(data);
+                console.log('Received stock info update');
                 var selectedStock = document.getElementById(data + "-button");
                 selectedStock.innerText = data.toUpperCase();
             });
@@ -62,10 +62,18 @@
     </header>
     <main>
         <section id="controls">
-            <button id="ibm-button" class="stock-button">IBM</button>
-            <button id="msft-button" class="stock-button">MSFT</button>
-            <button id="tsla-button" class="stock-button">TSLA</button>
-            <button id="race-button" class="stock-button">RACE</button>
+            <button id="ibm-button" class="stock-button">IBM<br><span id="ibm-price">
+                Loading...
+            </span></button>
+            <button id="msft-button" class="stock-button">MSFT<br><span id="msft-price">
+                Loading...
+            </span></button>
+            <button id="tsla-button" class="stock-button">TSLA<br><span id="tsla-price">
+                Loading...
+            </span></button>
+            <button id="race-button" class="stock-button">RACE<br><span id="race-price">
+                Loading...
+            </span></button>
         </section>
         <section id="display">
             <div id="stock-data" class="info-box">
