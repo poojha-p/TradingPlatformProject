@@ -61,9 +61,11 @@ current_stock = "ibm"
 
 # Load in config file.
 with open('app-config.properties', 'rb') as config_file:
-    configs.load(config_file)
-
-API_KEY = configs.get("API_KEY").data
+    try:
+        configs.load(config_file, "utf-8")
+        API_KEY = configs.get("API_KEY").data
+    except Exception as e:
+        print(f"Error loading config file: {e}")
 
 # Homepage
 @app.route("/")
@@ -83,6 +85,13 @@ def get_stock_data_endpoint():
     stock = request.args.get("stock")
     return Response(response=get_stock_data_as_json(stock), status=200, mimetype='application/json')
 
+@app.route('/login')
+def login():
+    return render_template('login.html')
+
+@app.route('/signup')
+def signup():
+    return render_template('signup.html')
 
 # socket IO
 @socketio.on('connect')
