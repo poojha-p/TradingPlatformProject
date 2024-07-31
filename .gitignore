@@ -1,0 +1,6 @@
+.env
+*.db
+other.txt
+.venv
+/migrations
+*.pyc
