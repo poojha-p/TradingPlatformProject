@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, Response
+from flask import Flask, render_template, request, Response, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate, migrate
 from flask_socketio import SocketIO, send
@@ -28,6 +28,10 @@ class StockNameEnum(enum.Enum):
     tsla = "tsla"
     race = "race"
 
+class PurchaseType(enum.Enum):
+    BUY = "BUY"
+    SELL = "SELL"
+
 
 #create Models
 class Users(db.Model):
@@ -48,6 +52,17 @@ class Trades(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.now)
     stock_name = db.Column(db.Enum(StockNameEnum), nullable=False)
     username = db.Column(db.String(50), db.ForeignKey('users.username'), nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'buy_sell': self.buy_sell,
+            'order_type': self.order_type,
+            'price': self.price,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'stock_name': self.stock_name.name if self.stock_name else None,
+            'username': self.username
+        }
 
     def __repr__(self):
         return f"<Trade {self.stock_name} {self.buy_sell} {self.price} {self.timestamp} >"
@@ -85,13 +100,77 @@ def get_stock_data_endpoint():
     stock = request.args.get("stock")
     return Response(response=get_stock_data_as_json(stock), status=200, mimetype='application/json')
 
+
+@app.route('/all-trades', methods=['GET'])
+def get_trades():
+    trades = Trades.query.all()
+    trades_list = [trade.to_dict() for trade in trades]
+    return jsonify({"trades": trades_list})
+
+
 @app.route('/login')
 def login():
     return render_template('login.html')
 
+
 @app.route('/signup')
 def signup():
     return render_template('signup.html')
+
+
+@app.route("/buy-stock", methods=['POST'])
+def buy_stock():
+    return process_trade(PurchaseType.BUY, request.get_json())
+
+
+@app.route("/sell-stock", methods=['POST'])
+def sell_stock():
+    return process_trade(PurchaseType.SELL, request.get_json())
+
+
+def process_trade(buy_or_sell, data):
+    is_buying = buy_or_sell == PurchaseType.BUY
+
+    # Check if data was received correctly
+    if not data:
+        return jsonify({"error": "Invalid or missing JSON"}), 400
+
+    # Process the data (for example, print it or use it)
+    username = data.get('username')
+    symbol = data.get('symbol')
+    price = data.get('price')
+    time = data.get('time')
+
+    if is_buying:
+        print(f'Buying stock {symbol} for user {username}!')
+    else:
+        print(f'Selling stock {symbol} for user {username}!')
+
+    stock_name = None
+
+    match symbol:
+        case 'ibm':
+            stock_name = StockNameEnum.ibm
+        case 'tsla':
+            stock_name = StockNameEnum.tsla
+        case 'msft':
+            stock_name = StockNameEnum.msft
+        case 'race':
+            stock_name = StockNameEnum.race
+
+    new_trade = Trades(buy_sell=is_buying, order_type='market', price=price, timestamp=datetime.utcfromtimestamp(int(time)),
+                       stock_name=stock_name, username=username)
+    db.session.add(new_trade)
+    db.session.commit()
+
+    if is_buying:
+        print(f'Bought stock {symbol} for user {username}!')
+    else:
+        print(f'Sold stock {symbol} for user {username}!')
+
+
+    # Respond back with a success message or some processed result
+    return jsonify({"message": "Trade processed", "data": data}), 200
 
 # socket IO
 @socketio.on('connect')
