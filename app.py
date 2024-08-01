@@ -82,6 +82,23 @@ with open('app-config.properties', 'rb') as config_file:
     except Exception as e:
         print(f"Error loading config file: {e}")
 
+with app.app_context():
+    
+    db.create_all()
+
+#after login
+@app.route("/after-login")
+def after_login():
+    Users.query.delete()
+    #Creating a dummy user
+    dummy_user = Users(username='Tyler', password='password123', email='tyler@example.com')
+    db.session.add(dummy_user)
+    db.session.commit()
+    users = Users.query.all()
+    print("Dummy User:", users)
+    user = Users.query.filter_by(username='Tyler').first()
+    return render_template('after-login.html', user=user)
+
 # Homepage
 @app.route("/")
 def hello_world():
