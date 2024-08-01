@@ -208,6 +208,10 @@ main {
     transition: background-color 0.3s ease;
 }
 
+.bold {
+    font-weight: bold;
+}
+
 .stock-button:hover {
     background-color: #0056b3;
 }
@@ -254,6 +258,7 @@ main {
 #trade {
     display: flex;
     justify-content: center;
+    align-items: center;
     width: 80%;
     margin-top: 20px;
     padding-top: 20px;
@@ -266,11 +271,24 @@ main {
 
 #trade label {
     margin-right: 10px;
+    color: #333;
 }
 
 #trade select {
     padding: 5px;
     font-size: 16px;
+}
+
+.current-price-label {
+    margin: 0 20px; /* Adds spacing around the label */
+    font-size: 16px; /* Match font size with the rest of the form */
+    color: #555; /* A subtle gray for text color */
+    background-color: #e0e0e0; /* A light gray background to make it stand out */
+    padding: 5px 10px; /* Padding for better visual appearance */
+    border-radius: 5px; /* Rounded corners for aesthetic */
+    width: 200px; /* Fixed width */
+    text-align: center; /* Center text alignment */
+    display: inline-block; /* Ensures the label does not stretch */
 }
 
 .trade-button {

@@ -1,126 +1,183 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Stock Market Dashboard</title>
-    <link rel="stylesheet" href="../static/css/styles.css">
+    <link rel="stylesheet" href="../static/css/styles.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.0/socket.io.js"></script>
     <script type="text/javascript">
-        document.addEventListener('DOMContentLoaded', function() {
-            var socket = io.connect('http://' + document.domain + ':' + location.port);
+      document.addEventListener("DOMContentLoaded", function () {
+        var socket = io.connect(
+          "http://" + document.domain + ":" + location.port
+        );
 
-            socket.on('connect', function() {
-                console.log('Connected to server');
-            });
+        var currentStock = null;
 
-            socket.on('stock_update', function(data) {
-                var stockDataContainer = document.getElementById('stock-data');
-                stockDataContainer.innerHTML = '';
-
-                if ('error' in data) {
-                    stockDataContainer.textContent = 'Error: ' + data.error;
-                } else {
-                    const { symbol, price, time } = data;
-                    stockDataContainer.innerHTML = `
-                        <p><strong>Symbol:</strong> ${symbol}</p>
-                        <p><strong>Price:</strong> ${price}</p>
-                        <p><strong>Time:</strong> ${time}</p>
-                    `;
-                }
-            });
-
-            socket.on('stock-info-update', function(data) {
-                console.log(data);
-                console.log('Received stock info update');
-                var selectedStock = document.getElementById(data.get('symbol').lower() + "-button");
-                selectedStock.innerText = `
-                        <p><strong>Symbol:</strong> ${data.get('symbol')}</p>
-                        <p><strong>Price:</strong> ${data.get('price')}</p>
-                        `
-            });
-
-            document.getElementById('ibm-button').onclick = function() {
-                socket.emit('select-stock', 'ibm');
-            };
-            document.getElementById('msft-button').onclick = function() {
-                socket.emit('select-stock', 'msft');
-            };
-            document.getElementById('tsla-button').onclick = function() {
-                socket.emit('select-stock', 'tsla');
-            };
-            document.getElementById('race-button').onclick = function() {
-                socket.emit('select-stock', 'race');
-            };
+        socket.on("connect", function () {
+          console.log("Connected to server");
         });
+
+        // Function to update stock prices
+        function updateStockPrices() {
+          fetch("/output-prices")
+            .then((response) => response.json())
+            .then((data) => {
+              console.log("Received stock info:", data);
+              data.forEach((stock) => {
+                var stockPriceSpan = document.getElementById(
+                  stock.symbol.toLowerCase() + "-price"
+                );
+
+                if (stockPriceSpan) {
+                  stockPriceSpan.innerText = `$${stock.price.toFixed(2)}`;
+                }
+              });
+            })
+            .catch((error) => {
+              console.error("Error fetching stock prices:", error);
+            });
+        }
+
+        // Fetch stock prices immediately on load
+        updateStockPrices();
+
+        // Set interval to fetch stock prices every 30 seconds
+        setInterval(updateStockPrices, 30000);
+
+        document.querySelectorAll(".stock-button").forEach((button) => {
+          button.addEventListener("click", function () {
+            // Remove 'bold' class from all buttons
+            document.querySelectorAll(".stock-button").forEach((btn) => {
+              btn.classList.remove("bold");
+              this.classList.add("bold");
+              currentStock = this.id.replace("-button", "").toUpperCase();
+            });
+
+            // Toggle the 'bold' class on the clicked button
+            if (!this.classList.contains("bold")) {
+              this.classList.add("bold");
+            }
+
+            var priceSpan = this.querySelector("span");
+            var currentPriceLabel = document.getElementById(
+              "current-price-label"
+            );
+
+            if (priceSpan && currentPriceLabel) {
+              currentPriceLabel.innerText = `Current Price: ${priceSpan.innerText}`;
+            }
+          });
+        });
+
+        /* POST DATA!!! */
+        document.querySelectorAll(".trade-button").forEach((button) => {
+          button.addEventListener("click", function () {
+            /*const stockSymbol =
+              document.getElementById("hidden-stock-input").value;*/
+            const tradeType = document.getElementById("trade-type").value;
+            const orderType = document.getElementById("order-type").value;
+            const buyOrSell = this.id.replace("-button", "").toUpperCase();
+            const currentPriceLabel = document.getElementById('current-price-label').innerText;
+            const actualPrice = parseFloat(currentPriceLabel.replace('Current Price: $', ''));
+
+            console.log(actualPrice);
+
+            fetch("/" + buyOrSell.toLowerCase() + "-stock", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                username: "ADD_USERNAME",
+                symbol: currentStock,
+                price: actualPrice,
+                time: Math.floor(Date.now() / 1000),
+                order: orderType,
+                trade: tradeType,
+              }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                console.log("RESPONSE: ", data);
+              })
+              .catch((error) => {
+                console.error(
+                  "Some error happened when executing this trade, " + error
+                );
+              });
+          });
+        });
+      });
     </script>
-</head>
-<body>
+  </head>
+  <body>
     <header>
-        <h1>Stock Market Dashboard</h1>
-        <nav>
-            <a href="/login" class="auth-link">Login</a>
-            <a href="/signup" class="auth-link">Sign Up</a>
-        </nav>
+      <h1>Stock Market Dashboard</h1>
+      <nav>
+        <a href="/login" class="auth-link">Login</a>
+        <a href="/signup" class="auth-link">Sign Up</a>
+      </nav>
     </header>
     <main>
-        <section id="controls">
-            <button id="ibm-button" class="stock-button">IBM<br><span id="ibm-price">
-                Loading...
-            </span></button>
-            <button id="msft-button" class="stock-button">MSFT<br><span id="msft-price">
-                Loading...
-            </span></button>
-            <button id="tsla-button" class="stock-button">TSLA<br><span id="tsla-price">
-                Loading...
-            </span></button>
-            <button id="race-button" class="stock-button">RACE<br><span id="race-price">
-                Loading...
-            </span></button>
-        </section>
-        <section id="display">
-            <div id="stock-data" class="info-box">
-                <h2>Market Data:</h2>
-                <p>Select a stock to view its current price and details.</p>
-            </div>
-            <div id="transaction-history" class="info-box">
-                <h2>Transaction History</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Stock</th>
-                            <th>Type</th>
-                            <th>Quantity</th>
-                            <th>Price</th>
-                        </tr>
-                    </thead>
-                    <tbody id="transaction-table-body">
-                        <!-- Transactions will be populated here from the database -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-        <section id="trade">
-            <div>
-                <label for="order-type">Order Type:</label>
-                <select id="order-type">
-                    <option value="market">Market</option>
-                    <option value="limit">Limit</option>
-                    <option value="stop">Stop</option>
-                </select>
-            </div>
-            <div>
-                <label for="trade-type">Trade Type:</label>
-                <select id="trade-type">
-                    <option value="equity">Equity</option>
-                    <option value="derivative">Derivative</option>
-                    <option value="bond">Bond</option>
-                </select>
-            </div>
-            <button id="buy-button" class="trade-button">BUY</button>
-            <button id="sell-button" class="trade-button">SELL</button>
-        </section>
+      <section id="controls">
+        <button id="ibm-button" class="stock-button">
+          IBM<br /><span id="ibm-price"> Loading... </span>
+        </button>
+        <button id="msft-button" class="stock-button">
+          MSFT<br /><span id="msft-price"> Loading... </span>
+        </button>
+        <button id="tsla-button" class="stock-button">
+          TSLA<br /><span id="tsla-price"> Loading... </span>
+        </button>
+        <button id="race-button" class="stock-button">
+          RACE<br /><span id="race-price"> Loading... </span>
+        </button>
+      </section>
+      <section id="display">
+        <div id="stock-data" class="info-box">
+          <h2>Market Data:</h2>
+          <p>Select a stock to view its current price and details.</p>
+        </div>
+        <div id="transaction-history" class="info-box">
+          <h2>Transaction History</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Stock</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Price</th>
+              </tr>
+            </thead>
+            <tbody id="transaction-table-body">
+              <!-- Transactions will be populated here from the database -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section id="trade">
+        <div>
+          <label for="order-type">Order Type:</label>
+          <select id="order-type">
+            <option value="market">Market</option>
+            <option value="limit">Limit</option>
+            <option value="stop">Stop</option>
+          </select>
+        </div>
+        <div>
+          <label for="trade-type">Trade Type:</label>
+          <select id="trade-type">
+            <option value="equity">Equity</option>
+            <option value="derivative">Derivative</option>
+            <option value="bond">Bond</option>
+          </select>
+        </div>
+        <label id="current-price-label">Current Price: </label>
+        <button id="buy-button" class="trade-button">BUY</button>
+        <button id="sell-button" class="trade-button">SELL</button>
+      </section>
     </main>
-</body>
+  </body>
 </html>
