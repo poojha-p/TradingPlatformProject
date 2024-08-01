@@ -103,8 +103,8 @@ def handle_connect():
 @socketio.on('select-stock')
 def handle_select_stock(data):
     global current_stock
-    current_stock = data
-    socketio.emit('stock-info-update', current_stock)
+    current_stock_data = get_stock_data_as_json(data)
+    socketio.emit('stock-info-update', current_stock_data)
 
 """ @socketio.on('select-stock')
 def handle_select_stock(data):
@@ -161,7 +161,7 @@ def background_thread():
         current_stock_data = get_stock_data(current_stock)
 
         if 'error' in current_stock_data or current_stock_data.get('symbol').lower() == current_stock:
-            socketio.emit('stock_update', current_stock_data)
+            socketio.emit('f', current_stock_data)
 
         time.sleep(POLLING_INTERVAL)
 

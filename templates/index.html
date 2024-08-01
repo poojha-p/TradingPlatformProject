@@ -33,8 +33,11 @@
             socket.on('stock-info-update', function(data) {
                 console.log(data);
                 console.log('Received stock info update');
-                var selectedStock = document.getElementById(data + "-button");
-                selectedStock.innerText = data.toUpperCase();
+                var selectedStock = document.getElementById(data.get('symbol').lower() + "-button");
+                selectedStock.innerText = `
+                        <p><strong>Symbol:</strong> ${data.get('symbol')}</p>
+                        <p><strong>Price:</strong> ${data.get('price')}</p>
+                        `
             });
 
             document.getElementById('ibm-button').onclick = function() {
