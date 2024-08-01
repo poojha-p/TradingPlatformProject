@@ -11,7 +11,7 @@ from threading import Thread, Lock
 import time
 
 app = Flask(__name__)
-app.debug = True
+
 socketio = SocketIO(app)
 configs = Properties()
 
@@ -23,7 +23,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 class StockNameEnum(enum.Enum):
-    ibm =  "ibm"
+    ibm = "ibm"
     msft = "msft"
     tsla = "tsla"
     race = "race"
@@ -67,12 +67,16 @@ class Trades(db.Model):
     def __repr__(self):
         return f"<Trade {self.stock_name} {self.buy_sell} {self.price} {self.timestamp} >"
 
+
 AVAILABLE_STOCKS = ["ibm", "msft", "tsla", "race"]
 
 # In seconds
 POLLING_INTERVAL = 3
 
 current_stock = "ibm"
+
+# At the start of your file
+current_stock_lock = Lock()
 
 # Load in config file.
 with open('app-config.properties', 'rb') as config_file:
@@ -179,11 +183,12 @@ def handle_connect():
     socketio.emit('stock-info-update', current_stock)
 
 
-@socketio.on('select-stock')
-def handle_select_stock(data):
-    global current_stock
-    current_stock = data
-    socketio.emit('stock-info-update', current_stock)
+# @socketio.on('select-stock')
+# def handle_select_stock(data):
+#     global current_stock
+#     current_stock = data
+#     socketio.emit('stock-info-update', current_stock)
+#     print(f'SELECTED STOCK {data}! CURRENT STOCK: {current_stock}')
 
 """ @socketio.on('select-stock')
 def handle_select_stock(data):
@@ -235,14 +240,40 @@ def get_stock_data(stock):
 
 
 # Background thread that polls the Echios API (based on the POLLING_INTERVAL) for the selected stock.
-def background_thread():
-    while True:
-        current_stock_data = get_stock_data(current_stock)
+# def background_thread():
+#     while True:
+#         global current_stock
+#         print(f'WOOOOO')
+#         current_stock_data = get_stock_data(current_stock)
+#
+#         print(f'CURRENT STOCK IN BACKGROUND THREAD: {current_stock}')
+#         if 'error' in current_stock_data or current_stock_data.get('symbol').lower() == current_stock:
+#             socketio.emit('stock_update', current_stock_data)
+#
+#         time.sleep(POLLING_INTERVAL)
 
-        if 'error' in current_stock_data or current_stock_data.get('symbol').lower() == current_stock:
+@socketio.on('select-stock')
+def handle_select_stock(data):
+    global current_stock
+    with current_stock_lock:
+        current_stock = data
+    socketio.emit('stock-info-update', current_stock)
+    print(f'SELECTED STOCK {data}! CURRENT STOCK: {current_stock}')
+
+def background_thread():
+    global current_stock
+    while True:
+        with current_stock_lock:
+            stock_to_fetch = current_stock
+        print(f'Fetching data for {stock_to_fetch}')
+        current_stock_data = get_stock_data(stock_to_fetch)
+
+        if 'error' not in current_stock_data:
+            print(f'CURRENT STOCK IN BACKGROUND THREAD: {stock_to_fetch}')
             socketio.emit('stock_update', current_stock_data)
 
         time.sleep(POLLING_INTERVAL)
+
 
 
 if __name__ == '__main__':
