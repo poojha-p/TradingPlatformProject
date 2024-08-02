@@ -5,6 +5,8 @@ from flask_socketio import SocketIO, send
 from jproperties import Properties
 from datetime import datetime
 import enum
+
+import pytz
 import requests
 import json
 from threading import Thread, Lock
@@ -22,36 +24,40 @@ db = SQLAlchemy(app)
 # Settings for migrations
 migrate = Migrate(app, db)
 
+
 class StockNameEnum(enum.Enum):
     ibm = "ibm"
     msft = "msft"
     tsla = "tsla"
     race = "race"
 
+
 class PurchaseType(enum.Enum):
     BUY = "BUY"
     SELL = "SELL"
 
 
-#create Models
+# create Models
 class Users(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(50), nullable=False, unique=True)
     password = db.Column(db.String(60), nullable=False)
-    email = db.Column(db.String(200), nullable=False, unique =True)
+    email = db.Column(db.String(200), nullable=False, unique=True)
     trades = db.relationship('Trades', backref='user', lazy=True)
 
     def __repr__(self):
         return f"Name : {self.username}, ID: {self.id}"
 
+
 class Trades(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    buy_sell = db.Column(db.Boolean, nullable=False)  
+    buy_sell = db.Column(db.Boolean, nullable=False)
     order_type = db.Column(db.String(50), nullable=False)
     price = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.now)
     stock_name = db.Column(db.Enum(StockNameEnum), nullable=False)
-    username = db.Column(db.String(50), db.ForeignKey('users.username'), nullable=False)
+    username = db.Column(db.String(50), db.ForeignKey(
+        'users.username'), nullable=False)
 
     def to_dict(self):
         return {
@@ -86,6 +92,24 @@ with open('app-config.properties', 'rb') as config_file:
     except Exception as e:
         print(f"Error loading config file: {e}")
 
+# after login
+
+
+@app.route("/after-login")
+def after_login():
+    Users.query.delete()
+    Trades.query.delete()
+    # Creating a dummy user
+    dummy_user = Users(username='tyler1', password='password123',
+                       email='tyler.bob@gmail.com')
+    db.session.add(dummy_user)
+    db.session.commit()
+    users = Users.query.all()
+    print("Dummy User:", users)
+    user = Users.query.filter_by(username='tyler1').first()
+    return render_template('after-login.html', user=user)
+
+
 # Homepage
 @app.route("/")
 def hello_world():
@@ -112,8 +136,12 @@ def get_trades():
     return jsonify({"trades": trades_list})
 
 
-@app.route('/login')
+@app.route('/login', methods=["GET", "POST"])
 def login():
+    print(request.method)
+    if request.method == 'POST':
+        # Regardless of the input, redirect to the after-login page
+        return after_login()
     return render_template('login.html')
 
 
@@ -141,9 +169,10 @@ def process_trade(buy_or_sell, data):
 
     # Process the data (for example, print it or use it)
     username = data.get('username')
-    symbol = data.get('symbol')
+    symbol = data.get('stock_name')
     price = data.get('price')
-    time = data.get('time')
+    time = data.get('timestamp')
+    order_type = data.get('order_type')
 
     if is_buying:
         print(f'Buying stock {symbol} for user {username}!')
@@ -162,8 +191,13 @@ def process_trade(buy_or_sell, data):
         case 'race':
             stock_name = StockNameEnum.race
 
-    new_trade = Trades(buy_sell=is_buying, order_type='market', price=price, timestamp=datetime.utcfromtimestamp(int(time)),
-                       stock_name=stock_name, username=username)
+    # Get the current time in the local timezone
+    # Replace with your local timezone
+    local_timezone = pytz.timezone('America/New_York')
+    current_time = datetime.now(local_timezone)
+
+    new_trade = Trades(buy_sell=is_buying, order_type=order_type, price=price,
+                       timestamp=current_time, stock_name=stock_name, username=username)
     db.session.add(new_trade)
     db.session.commit()
 
@@ -172,11 +206,12 @@ def process_trade(buy_or_sell, data):
     else:
         print(f'Sold stock {symbol} for user {username}!')
 
-
     # Respond back with a success message or some processed result
     return jsonify({"message": "Trade processed", "data": data}), 200
 
 # socket IO
+
+
 @socketio.on('connect')
 def handle_connect():
     send('A new user has connected.', broadcast=True)
@@ -196,6 +231,8 @@ def handle_select_stock(data):
     socketio.emit('stock-info-update', current_stock_data)
  """
 # Logic
+
+
 def get_all_stock_data_as_json():
     return json.dumps({"stocks": get_all_stock_data()})
 
@@ -217,7 +254,8 @@ def get_all_stock_data():
 def get_stock_data(stock):
     try:
         print("pinging API")
-        http_response = requests.get(f'https://echios.tech/price/{stock}?apikey={API_KEY}')
+        http_response = requests.get(
+            f'https://echios.tech/price/{stock}?apikey={API_KEY}')
 
         json_response = http_response.json()
 
@@ -260,6 +298,7 @@ def handle_select_stock(data):
     socketio.emit('stock-info-update', current_stock)
     print(f'SELECTED STOCK {data}! CURRENT STOCK: {current_stock}')
 
+
 def background_thread():
     global current_stock
     while True:
@@ -273,7 +312,6 @@ def background_thread():
             socketio.emit('stock_update', current_stock_data)
 
         time.sleep(POLLING_INTERVAL)
-
 
 
 if __name__ == '__main__':
