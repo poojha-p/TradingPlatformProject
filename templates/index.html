@@ -12,38 +12,11 @@
           "http://" + document.domain + ":" + location.port
         );
 
-        var currentStock = null;
+        var currentStock = "ibm";
 
         socket.on("connect", function () {
           console.log("Connected to server");
         });
-
-        // Function to update stock prices
-        function updateStockPrices() {
-          fetch("/output-prices")
-            .then((response) => response.json())
-            .then((data) => {
-              console.log("Received stock info:", data);
-              data.forEach((stock) => {
-                var stockPriceSpan = document.getElementById(
-                  stock.symbol.toLowerCase() + "-price"
-                );
-
-                if (stockPriceSpan) {
-                  stockPriceSpan.innerText = `$${stock.price.toFixed(2)}`;
-                }
-              });
-            })
-            .catch((error) => {
-              console.error("Error fetching stock prices:", error);
-            });
-        }
-
-        // Fetch stock prices immediately on load
-        updateStockPrices();
-
-        // Set interval to fetch stock prices every 30 seconds
-        setInterval(updateStockPrices, 30000);
 
         document.querySelectorAll(".stock-button").forEach((button) => {
           button.addEventListener("click", function () {
@@ -51,7 +24,7 @@
             document.querySelectorAll(".stock-button").forEach((btn) => {
               btn.classList.remove("bold");
               this.classList.add("bold");
-              currentStock = this.id.replace("-button", "").toUpperCase();
+              currentStock = this.id.replace("-button", "").toLowerCase();
             });
 
             // Toggle the 'bold' class on the clicked button
@@ -64,10 +37,48 @@
               "current-price-label"
             );
 
-            if (priceSpan && currentPriceLabel) {
-              currentPriceLabel.innerText = `Current Price: ${priceSpan.innerText}`;
-            }
+            console.log("CURRENT STOCK ON BUTTONS: " + currentStock);
+            socket.emit("select-stock", currentStock);
           });
+        });
+
+        socket.on("stock-info-update", function (data) {
+          console.log("Recieved select-stock event");
+          currentStock = data;
+          console.log("Updated stock to: " + data);
+        });
+
+        socket.on("stock_update", function (data) {
+          var stockSymbolValue = document.getElementById("stock-symbol-value");
+          var stockPriceValue = document.getElementById("stock-price-value");
+          var stockTimestampValue = document.getElementById(
+            "stock-timestamp-value"
+          );
+
+          var currentPriceLabel = document.getElementById(
+            "current-price-label"
+          );
+
+          if ("error" in data) {
+            console.log("YOU RECEIVED AN ERROR");
+          } else {
+            const { symbol, price, time } = data;
+            console.log("CURRENT STOCK ON STOCK UPDATE: " + currentStock);
+            console.log(
+              "Received stock update. \nSymbol: " +
+                symbol +
+                " \nPrice: " +
+                price +
+                " \nTime: " +
+                time
+            );
+
+            stockSymbolValue.innerText = symbol;
+            stockPriceValue.innerText = price;
+            stockTimestampValue.innerText = time;
+
+            currentPriceLabel.innerText = `Current Price: \$${price}`;
+          }
         });
 
         /* POST DATA!!! */
@@ -78,8 +89,12 @@
             const tradeType = document.getElementById("trade-type").value;
             const orderType = document.getElementById("order-type").value;
             const buyOrSell = this.id.replace("-button", "").toUpperCase();
-            const currentPriceLabel = document.getElementById('current-price-label').innerText;
-            const actualPrice = parseFloat(currentPriceLabel.replace('Current Price: $', ''));
+            const currentPriceLabel = document.getElementById(
+              "current-price-label"
+            ).innerText;
+            const actualPrice = parseFloat(
+              currentPriceLabel.replace("Current Price: $", "")
+            );
 
             console.log(actualPrice);
 
@@ -121,23 +136,23 @@
     </header>
     <main>
       <section id="controls">
-        <button id="ibm-button" class="stock-button">
-          IBM<br /><span id="ibm-price"> Loading... </span>
-        </button>
-        <button id="msft-button" class="stock-button">
-          MSFT<br /><span id="msft-price"> Loading... </span>
-        </button>
-        <button id="tsla-button" class="stock-button">
-          TSLA<br /><span id="tsla-price"> Loading... </span>
-        </button>
-        <button id="race-button" class="stock-button">
-          RACE<br /><span id="race-price"> Loading... </span>
-        </button>
+        <button id="ibm-button" class="stock-button">IBM<br /></button>
+        <button id="msft-button" class="stock-button">MSFT<br /></button>
+        <button id="tsla-button" class="stock-button">TSLA<br /></button>
+        <button id="race-button" class="stock-button">RACE<br /></button>
       </section>
       <section id="display">
         <div id="stock-data" class="info-box">
           <h2>Market Data:</h2>
-          <p>Select a stock to view its current price and details.</p>
+          <p id="stock-symbol-label">
+            Stock: <span id="stock-symbol-value"></span>
+          </p>
+          <p id="stock-price-label">
+            Price: <span id="stock-price-value"></span>
+          </p>
+          <p id="stock-timestamp-label">
+            Timestamp: <span id="stock-timestamp-value"></span>
+          </p>
         </div>
         <div id="transaction-history" class="info-box">
           <h2>Transaction History</h2>

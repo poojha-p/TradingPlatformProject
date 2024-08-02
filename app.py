@@ -11,7 +11,7 @@ from threading import Thread, Lock
 import time
 
 app = Flask(__name__)
-app.debug = True
+
 socketio = SocketIO(app)
 configs = Properties()
 
@@ -22,40 +22,36 @@ db = SQLAlchemy(app)
 # Settings for migrations
 migrate = Migrate(app, db)
 
-
 class StockNameEnum(enum.Enum):
     ibm = "ibm"
     msft = "msft"
     tsla = "tsla"
     race = "race"
 
-
 class PurchaseType(enum.Enum):
     BUY = "BUY"
     SELL = "SELL"
 
 
-# create Models
+#create Models
 class Users(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(50), nullable=False, unique=True)
     password = db.Column(db.String(60), nullable=False)
-    email = db.Column(db.String(200), nullable=False, unique=True)
+    email = db.Column(db.String(200), nullable=False, unique =True)
     trades = db.relationship('Trades', backref='user', lazy=True)
 
     def __repr__(self):
         return f"Name : {self.username}, ID: {self.id}"
 
-
 class Trades(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    buy_sell = db.Column(db.Boolean, nullable=False)
+    buy_sell = db.Column(db.Boolean, nullable=False)  
     order_type = db.Column(db.String(50), nullable=False)
     price = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.now)
     stock_name = db.Column(db.Enum(StockNameEnum), nullable=False)
-    username = db.Column(db.String(50), db.ForeignKey(
-        'users.username'), nullable=False)
+    username = db.Column(db.String(50), db.ForeignKey('users.username'), nullable=False)
 
     def to_dict(self):
         return {
@@ -75,7 +71,12 @@ class Trades(db.Model):
 AVAILABLE_STOCKS = ["ibm", "msft", "tsla", "race"]
 
 # In seconds
-POLLING_INTERVAL = 30
+POLLING_INTERVAL = 3
+
+current_stock = "ibm"
+
+# At the start of your file
+current_stock_lock = Lock()
 
 # Load in config file.
 with open('app-config.properties', 'rb') as config_file:
@@ -86,8 +87,6 @@ with open('app-config.properties', 'rb') as config_file:
         print(f"Error loading config file: {e}")
 
 # Homepage
-
-
 @app.route("/")
 def hello_world():
     # Pass dynamic data for HTML templating as named parameters.
@@ -95,25 +94,16 @@ def hello_world():
 
 
 # API endpoints
-""" @app.route("/all-stocks", methods=['GET'])
+@app.route("/all-stocks", methods=['GET'])
 def get_all_stock_prices_endpoint():
     return Response(response=get_all_stock_data_as_json(), status=200, mimetype='application/json')
- """
 
-""" @app.route("/stock", methods=['GET'])
+
+@app.route("/stock", methods=['GET'])
 def get_stock_data_endpoint():
     stock = request.args.get("stock")
     return Response(response=get_stock_data_as_json(stock), status=200, mimetype='application/json')
- """
- 
-@app.route('/output-prices')
-def output_prices():
-    stocks = []
-    for stock in AVAILABLE_STOCKS:
-        stocks.append(dict(get_stock_data(stock))) 
-    
-    # socketio.emit('stock-info-update', list(stocks))
-    return jsonify(stocks), 200
+
 
 @app.route('/all-trades', methods=['GET'])
 def get_trades():
@@ -134,18 +124,12 @@ def signup():
 
 @app.route("/buy-stock", methods=['POST'])
 def buy_stock():
-    # return process_trade(PurchaseType.BUY, request.get_json())
-    return jsonify({
-        "data": request.get_json()
-    }, 200)
+    return process_trade(PurchaseType.BUY, request.get_json())
 
 
 @app.route("/sell-stock", methods=['POST'])
 def sell_stock():
-    # return process_trade(PurchaseType.SELL, request.get_json())
-    return jsonify({
-        "data": request.get_json()
-    }, 200)
+    return process_trade(PurchaseType.SELL, request.get_json())
 
 
 def process_trade(buy_or_sell, data):
@@ -188,26 +172,36 @@ def process_trade(buy_or_sell, data):
     else:
         print(f'Sold stock {symbol} for user {username}!')
 
+
     # Respond back with a success message or some processed result
     return jsonify({"message": "Trade processed", "data": data}), 200
 
 # socket IO
-
-
 @socketio.on('connect')
 def handle_connect():
     send('A new user has connected.', broadcast=True)
-    # socketio.emit('stock-info-update', get_all_stock_data())
+    socketio.emit('stock-info-update', current_stock)
 
 
+# @socketio.on('select-stock')
+# def handle_select_stock(data):
+#     global current_stock
+#     current_stock = data
+#     socketio.emit('stock-info-update', current_stock)
+#     print(f'SELECTED STOCK {data}! CURRENT STOCK: {current_stock}')
+
+""" @socketio.on('select-stock')
+def handle_select_stock(data):
+    current_stock_data = get_stock_data(data)
+    socketio.emit('stock-info-update', current_stock_data)
+ """
 # Logic
-""" def get_all_stock_data_as_json():
+def get_all_stock_data_as_json():
     return json.dumps({"stocks": get_all_stock_data()})
- """
 
-""" def get_stock_data_as_json(stock):
+
+def get_stock_data_as_json(stock):
     return json.dumps(get_stock_data(stock))
- """
 
 
 def get_all_stock_data():
@@ -216,21 +210,22 @@ def get_all_stock_data():
     for stock in AVAILABLE_STOCKS:
         stocks_list.append(dict(get_stock_data(stock)))
 
-    print(stocks_list)
     return list(stocks_list)
 
 
 # Call to Echios API made here.
 def get_stock_data(stock):
     try:
-        http_response = requests.get(
-            f'https://echios.tech/price/{stock}?apikey={API_KEY}')
+        print("pinging API")
+        http_response = requests.get(f'https://echios.tech/price/{stock}?apikey={API_KEY}')
 
         json_response = http_response.json()
 
-        # print(f'Length: {len(json_response)}')
+        print(f'Length: {len(json_response)}')
         if not json_response:
             print("DID NOT RECIEVE REPSONSE")
+
+        print(json_response)
 
         return {
             "symbol": json_response["symbol"],
@@ -245,17 +240,45 @@ def get_stock_data(stock):
 
 
 # Background thread that polls the Echios API (based on the POLLING_INTERVAL) for the selected stock.
-""" def background_thread():
+# def background_thread():
+#     while True:
+#         global current_stock
+#         print(f'WOOOOO')
+#         current_stock_data = get_stock_data(current_stock)
+#
+#         print(f'CURRENT STOCK IN BACKGROUND THREAD: {current_stock}')
+#         if 'error' in current_stock_data or current_stock_data.get('symbol').lower() == current_stock:
+#             socketio.emit('stock_update', current_stock_data)
+#
+#         time.sleep(POLLING_INTERVAL)
+
+@socketio.on('select-stock')
+def handle_select_stock(data):
+    global current_stock
+    with current_stock_lock:
+        current_stock = data
+    socketio.emit('stock-info-update', current_stock)
+    print(f'SELECTED STOCK {data}! CURRENT STOCK: {current_stock}')
+
+def background_thread():
+    global current_stock
     while True:
-        response = requests.get('http://localhost:5000/output-prices')
-        print('Response from /output-prices:', response.json())
+        with current_stock_lock:
+            stock_to_fetch = current_stock
+        print(f'Fetching data for {stock_to_fetch}')
+        current_stock_data = get_stock_data(stock_to_fetch)
+
+        if 'error' not in current_stock_data:
+            print(f'CURRENT STOCK IN BACKGROUND THREAD: {stock_to_fetch}')
+            socketio.emit('stock_update', current_stock_data)
+
         time.sleep(POLLING_INTERVAL)
- """
+
+
 
 if __name__ == '__main__':
-    # thread = Thread(target=background_thread)
-    # thread.daemon = True
-    # thread.start()
-    
-    # start the application
+    thread = Thread(target=background_thread)
+    thread.daemon = True
+    thread.start()
+
     socketio.run(app, allow_unsafe_werkzeug=True)
